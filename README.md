@@ -138,6 +138,7 @@ All of the above defaults (and more) may be changed with the option settings (se
 |7|[TextToFollow](#texttofollow)|off| Indicates that there will be text to follow the resulting number text. This permits the proper subject name to be added after the resulting text and the grammatically correct text to be generated for the number.
 |8|[Subject](#subject)|off| Produce output text including the subject name. The Subject name is passed as an array holding the 4 textual forms. The correct form and text are then used for the type of number.
 |9|[Legal](#legal)          |off| Output in a legal non-ambiguous form.
+||10|[Ordinal](#ordinal)     |off| Produce ordinal numbers (الأول، الثاني، الثالث...).
 
 
 
@@ -427,6 +428,50 @@ console.log( tafqit(102010, {Legal:"on"}) );   // "مائةألف وألفان �
 ```
 
 As additional protection against any ambiguity, it is advisable to enable the option **{Comma: "on"}** to clearly indicate the separation between triplets.
+
+
+
+
+#### **⚙ Option `{Ordinal : "on"}`**<a name="ordinal"></a>
+
+This option produces ordinal numbers (الأرقام الترتيبية) instead of cardinal numbers. Ordinal numbers indicate position or order (first, second, third...) rather than quantity.
+
+Examples with the option **{Ordinal: "on"}**:
+
+```javascript
+console.log( tafqit(1, {Ordinal:"on"}) );    // "الأول"
+console.log( tafqit(2, {Ordinal:"on"}) );    // "الثاني"
+console.log( tafqit(3, {Ordinal:"on"}) );    // "الثالث"
+console.log( tafqit(10, {Ordinal:"on"}) );   // "العاشر"
+console.log( tafqit(11, {Ordinal:"on"}) );   // "الحادي عشر"
+console.log( tafqit(12, {Ordinal:"on"}) );   // "الثاني عشر"
+console.log( tafqit(20, {Ordinal:"on"}) );   // "العشرون"
+console.log( tafqit(21, {Ordinal:"on"}) );   // "الحادي والعشرون"
+console.log( tafqit(100, {Ordinal:"on"}) );  // "المائة"
+console.log( tafqit(101, {Ordinal:"on"}) );  // "المائة والأول"
+console.log( tafqit(1000, {Ordinal:"on"}) ); // "الألف"
+```
+
+For feminine subjects, combine with **{Feminine: "on"}**:
+
+```javascript
+console.log( tafqit(1, {Ordinal:"on", Feminine:"on"}) );   // "الأولى"
+console.log( tafqit(2, {Ordinal:"on", Feminine:"on"}) );   // "الثانية"
+console.log( tafqit(3, {Ordinal:"on", Feminine:"on"}) );   // "الثالثة"
+console.log( tafqit(11, {Ordinal:"on", Feminine:"on"}) );  // "الحادية عشرة"
+console.log( tafqit(21, {Ordinal:"on", Feminine:"on"}) );  // "الحادية والعشرون"
+```
+
+For Accusative/Genitive case, combine with **{AG: "on"}**:
+
+```javascript
+console.log( tafqit(20, {Ordinal:"on"}) );              // "العشرون"
+console.log( tafqit(20, {Ordinal:"on", AG:"on"}) );     // "العشرين"
+console.log( tafqit(21, {Ordinal:"on"}) );              // "الحادي والعشرون"
+console.log( tafqit(21, {Ordinal:"on", AG:"on"}) );     // "الحادي والعشرين"
+console.log( tafqit(200, {Ordinal:"on"}) );             // "المائتان"
+console.log( tafqit(200, {Ordinal:"on", AG:"on"}) );    // "المائتين"
+```
 
 
 

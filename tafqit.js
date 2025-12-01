@@ -1,13 +1,13 @@
 /*********************************************************************
 * @function      : tafqit(Number [,{options}])
 * @purpose       : Converts Numbers to Arabic Words with Grammar Rules
-* @version       : 1.60
+* @version       : 1.70
 * @author        : Mohsen Alyafei
 * @date          : 04 August 2020
 * @Licence       : MIT
 * @param         : {Number} [Integer in Numeric or String form]
 *                  Number may be in Arabic-Indic format (as a string)
-* @param         : [{options}] 9 Options passed as object {name:value} as follows:
+* @param         : [{options}] 10 Options passed as object {name:value} as follows:
 *
 * {Feminine}     : "on": Generate string for a Feminine subject (أرقام بصيغة المؤنث).
 *                        The default is the Masculine form.
@@ -29,16 +29,28 @@
 *                  The subject name will be added to the resulting string in acordance
 *                  with the number grammar rules.
 * {Legal}        : "on" Uses the lagal form of output text.
+* {Ordinal}      : "on" Produces ordinal numbers (الأول، الثاني، الثالث...).
 *
 * @returns       : {string} The wordified number string in Arabic.
 **********************************************************************/
 const TableScales =["","ألف","مليون","مليار","ترليون","كوادرليون","كوينتليون","سكستليون"], // Add here only
       TableScalesP=["","آلاف","ملايين","مليارات"], // Do not change this table
       TableMale   =["","واحد","اثنان","ثلاثة","أربعة","خمسة","ستة","سبعة","ثمانية","تسعة","عشرة"],
-      TableFemale =["","واحدة","اثنتان","ثلاث","أربع","خمس","ست","سبع","ثمان","تسع","عشر"];
+      TableFemale =["","واحدة","اثنتان","ثلاث","أربع","خمس","ست","سبع","ثمان","تسع","عشر"],
+      // Ordinal Numbers Tables (الأرقام الترتيبية)
+      TableOrdMale   =["","الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع","العاشر"],
+      TableOrdFemale =["","الأولى","الثانية","الثالثة","الرابعة","الخامسة","السادسة","السابعة","الثامنة","التاسعة","العاشرة"],
+      // Ordinal 11-19 (الحادي عشر - التاسع عشر)
+      TableOrd11_19Male   =["الحادي عشر","الثاني عشر","الثالث عشر","الرابع عشر","الخامس عشر","السادس عشر","السابع عشر","الثامن عشر","التاسع عشر"],
+      TableOrd11_19Female =["الحادية عشرة","الثانية عشرة","الثالثة عشرة","الرابعة عشرة","الخامسة عشرة","السادسة عشرة","السابعة عشرة","الثامنة عشرة","التاسعة عشرة"],
+      // Ordinal Tens (العشرون - التسعون)
+      TableOrdTens =["","","العشرون","الثلاثون","الأربعون","الخمسون","الستون","السبعون","الثمانون","التسعون"],
+      // Ordinal Units for compound numbers (الحادي، الثاني... used with والعشرون، والثلاثون...)
+      TableOrdUnitsMale   =["","الحادي","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع"],
+      TableOrdUnitsFemale =["","الحادية","الثانية","الثالثة","الرابعة","الخامسة","السادسة","السابعة","الثامنة","التاسعة"];
 
-function tafqit(NumIn=0,{Feminine,Comma,SplitHund,Miah,Billions,TextToFollow,AG,Subject,Legal}={}) {
-if (NumIn == 0) return "صفر";                          // if 0 or "0" then "zero"
+function tafqit(NumIn=0,{Feminine,Comma,SplitHund,Miah,Billions,TextToFollow,AG,Subject,Legal,Ordinal}={}) {
+if (NumIn == 0) return Ordinal === "on" ? "الصفر" : "صفر"; // if 0 or "0" then "zero"
 let Triplet, Scale, ScalePos, ScalePlural, TableUnits, Table11_19,NumberInWords= "",IsLastEffTriplet= false,Num_99;
 const ON= "on",                         // Flag to test if Option is ON
  IsAG   = (AG===ON),                    // Option Accusative or Genitive case Grammar?
@@ -57,6 +69,12 @@ TextToFollow = TextToFollow === ON;     // TextToFollow Option Flag
 if(IsSubject) TextToFollow = true;     // Enable TextToFollow Option if Subject Option is ON
 NumIn+="";                              // Make numeric string
 NumIn =""+NumIn.replace(/[٠-٩]/g, d => "٠١٢٣٤٥٦٧٨٩".indexOf(d)); // Convert Arabic-Indic Numbers to Arabic if any
+
+// Handle Ordinal Numbers (الأرقام الترتيبية)
+if (Ordinal === ON) {
+  return convertToOrdinal(+NumIn, Feminine === ON, IsAG);
+}
+
 Miah= (Miah===ON) ? "مئة" : "مائة";     // Select chosen Miah (Hundred) Option
 
 TableUnits   = [...TableMale]; Table11_19= [...TableMale]; // Create copies of Masculine Table for manipulation
@@ -136,5 +154,146 @@ if (Scale) {                                                                // A
     }
 }
 return Words999; //Return the Triple in Words
+}
+
+//------------------------------------------------------------------
+//    Ordinal Numbers Function (الأرقام الترتيبية)
+//------------------------------------------------------------------
+function convertToOrdinal(num, isFeminine, isAG) {
+  if (num === 0) return "الصفر";
+  if (num < 0) return ""; // Ordinals not for negative numbers
+  
+  const TableOrd = isFeminine ? TableOrdFemale : TableOrdMale;
+  const TableOrd11_19 = isFeminine ? TableOrd11_19Female : TableOrd11_19Male;
+  const TableOrdUnits = isFeminine ? TableOrdUnitsFemale : TableOrdUnitsMale;
+  const woon = isAG ? "ين" : "ون"; // العشرين/العشرون
+  
+  // 1-10
+  if (num <= 10) return TableOrd[num];
+  
+  // 11-19
+  if (num <= 19) return TableOrd11_19[num - 11];
+  
+  // 20-99
+  if (num < 100) {
+    const units = num % 10;
+    const tens = Math.floor(num / 10);
+    let tensWord = "";
+    
+    if (tens === 2) tensWord = "العشر" + woon;
+    else if (tens === 3) tensWord = "الثلاث" + woon;
+    else if (tens === 4) tensWord = "الأربع" + woon;
+    else if (tens === 5) tensWord = "الخمس" + woon;
+    else if (tens === 6) tensWord = "الست" + woon;
+    else if (tens === 7) tensWord = "السبع" + woon;
+    else if (tens === 8) tensWord = "الثمان" + woon;
+    else if (tens === 9) tensWord = "التسع" + woon;
+    
+    if (units === 0) return tensWord;
+    return TableOrdUnits[units] + " و" + tensWord;
+  }
+  
+  // 100-999
+  if (num < 1000) {
+    const hundreds = Math.floor(num / 100);
+    const remainder = num % 100;
+    let hundWord = "";
+    const miahWord = (Miah === ON) ? "مئة" : "مائة";
+    
+    if (hundreds === 1) hundWord = "ال" + miahWord;
+    else if (hundreds === 2) hundWord = "ال" + miahWord.slice(0,-1) + (isAG ? "تين" : "تان");
+    else {
+      const hundUnits = ["","","","ثلاث","أربع","خمس","ست","سبع","ثمان","تسع"];
+      hundWord = "ال" + hundUnits[hundreds] + miahWord;
+    }
+    
+    if (remainder === 0) return hundWord;
+    return hundWord + " و" + convertToOrdinalWithoutAl(remainder, isFeminine, isAG);
+  }
+  
+  // 1000+
+  if (num < 1000000) {
+    const thousands = Math.floor(num / 1000);
+    const remainder = num % 1000;
+    let thousandWord = "";
+    
+    if (thousands === 1) thousandWord = "الألف";
+    else if (thousands === 2) thousandWord = "الألف" + (isAG ? "ين" : "ان");
+    else {
+      // For 3+ thousands, use regular number + آلاف/ألف
+      thousandWord = "ال" + tafqit(thousands, {AG: isAG ? "on" : ""}) + (thousands <= 10 ? " آلاف" : " ألف");
+    }
+    
+    if (remainder === 0) return thousandWord;
+    return thousandWord + " و" + convertToOrdinalWithoutAl(remainder, isFeminine, isAG);
+  }
+  
+  // For millions and above, use a simpler approach
+  if (num < 1000000000) {
+    const millions = Math.floor(num / 1000000);
+    const remainder = num % 1000000;
+    let millionWord = "";
+    
+    if (millions === 1) millionWord = "المليون";
+    else if (millions === 2) millionWord = "المليون" + (isAG ? "ين" : "ان");
+    else {
+      millionWord = "ال" + tafqit(millions, {AG: isAG ? "on" : ""}) + (millions <= 10 ? " ملايين" : " مليون");
+    }
+    
+    if (remainder === 0) return millionWord;
+    return millionWord + " و" + convertToOrdinalWithoutAl(remainder, isFeminine, isAG);
+  }
+  
+  // Billions+
+  const billions = Math.floor(num / 1000000000);
+  const remainder = num % 1000000000;
+  let billionWord = "";
+  
+  if (billions === 1) billionWord = "المليار";
+  else if (billions === 2) billionWord = "المليار" + (isAG ? "ين" : "ان");
+  else {
+    billionWord = "ال" + tafqit(billions, {AG: isAG ? "on" : ""}) + (billions <= 10 ? " مليارات" : " مليار");
+  }
+  
+  if (remainder === 0) return billionWord;
+  return billionWord + " و" + convertToOrdinalWithoutAl(remainder, isFeminine, isAG);
+}
+
+// Helper function for ordinal continuation (used after و) - keeps "ال" prefix
+function convertToOrdinalWithoutAl(num, isFeminine, isAG) {
+  if (num <= 0) return "";
+  
+  const TableOrd = isFeminine ? TableOrdFemale : TableOrdMale;
+  const TableOrd11_19 = isFeminine ? TableOrd11_19Female : TableOrd11_19Male;
+  const TableOrdUnits = isFeminine ? TableOrdUnitsFemale : TableOrdUnitsMale;
+  const woon = isAG ? "ين" : "ون";
+  
+  // 1-10 - keep "ال" prefix for proper grammar (المائة والخامس)
+  if (num <= 10) return TableOrd[num];
+  
+  // 11-19 - keep "ال" prefix
+  if (num <= 19) return TableOrd11_19[num - 11];
+  
+  // 20-99
+  if (num < 100) {
+    const units = num % 10;
+    const tens = Math.floor(num / 10);
+    let tensWord = "";
+    
+    if (tens === 2) tensWord = "العشر" + woon;
+    else if (tens === 3) tensWord = "الثلاث" + woon;
+    else if (tens === 4) tensWord = "الأربع" + woon;
+    else if (tens === 5) tensWord = "الخمس" + woon;
+    else if (tens === 6) tensWord = "الست" + woon;
+    else if (tens === 7) tensWord = "السبع" + woon;
+    else if (tens === 8) tensWord = "الثمان" + woon;
+    else if (tens === 9) tensWord = "التسع" + woon;
+    
+    if (units === 0) return tensWord;
+    return TableOrdUnits[units] + " و" + tensWord;
+  }
+  
+  // For larger numbers, recursively use the main ordinal function
+  return convertToOrdinal(num, isFeminine, isAG);
 }
 }
